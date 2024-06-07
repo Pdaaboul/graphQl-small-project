@@ -29,7 +29,15 @@ const resolvers = {
     review: async (_, { id }) => await Review.findByPk(id),
 
     // Fetch a specific game by ID
-    game: async (_, { id }) => await Game.findByPk(id),
+    game: async (_, { id }) => {
+      const game = await Game.findByPk(id);
+      if (game) {
+        const parsedGame = game.dataValues;
+        parsedGame.platform = JSON.parse(parsedGame.platform);
+        return parsedGame;
+      }
+      return null;
+    },
 
     // Fetch a specific author by ID
     author: async (_, { id }) => await Author.findByPk(id),
@@ -66,7 +74,13 @@ const resolvers = {
     // Update a game by ID with new details and return the updated game
     updateGame: async (_, { id, edits }) => {
       await Game.update(edits, { where: { id } });
-      return await Game.findByPk(id);
+      const updatedGame = await Game.findByPk(id);
+      if (updatedGame) {
+        const parsedGame = updatedGame.dataValues;
+        parsedGame.platform = JSON.parse(parsedGame.platform);
+        return parsedGame;
+      }
+      return null;
     },
   },
 };
