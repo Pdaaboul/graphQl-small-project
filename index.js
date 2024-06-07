@@ -7,6 +7,7 @@ import { typeDefs } from "./schema.js";
 //db
 import db from "./_db.js";
 
+
 const resolvers = {
     Query: {
         games(){
@@ -17,6 +18,9 @@ const resolvers = {
         },
         authors(){
             return db.authors
+        },
+        review(_, args){
+            return db.reviews.find((review) => review.id === args.id)
         }
     }
 }
