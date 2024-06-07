@@ -1,84 +1,77 @@
+// index.js
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
-
-//types
 import { typeDefs } from "./schema.js";
+import sequelize from "./db.js";
+import Game from "./models/Game.js";
+import Author from "./models/Author.js";
+import Review from "./models/Review.js";
 
-//db
-import db from "./_db.js";
-
+// Define resolvers
 const resolvers = {
   Query: {
-    games() {
-      return db.games;
-    },
-    reviews() {
-      return db.reviews;
-    },
-    authors() {
-      return db.authors;
-    },
-    review(_, args) {
-      return db.reviews.find((review) => review.id === args.id);
-    },
-    game(_, args) {
-      return db.games.find((game) => game.id === args.id);
-    },
-    author(_, args) {
-      return db.authors.find((author) => author.id === args.id);
-    },
+    // Fetch all games
+    games: async () => await Game.findAll(),
+
+    // Fetch all reviews
+    reviews: async () => await Review.findAll(),
+
+    // Fetch all authors
+    authors: async () => await Author.findAll(),
+
+    // Fetch a specific review by ID
+    review: async (_, { id }) => await Review.findByPk(id),
+
+    // Fetch a specific game by ID
+    game: async (_, { id }) => await Game.findByPk(id),
+
+    // Fetch a specific author by ID
+    author: async (_, { id }) => await Author.findByPk(id),
   },
   Game: {
-    reviews(parent) {
-      return db.reviews.filter((r) => r.game_id === parent.id);
-    },
+    // Fetch reviews related to a specific game
+    reviews: async (parent) => await Review.findAll({ where: { game_id: parent.id } }),
   },
   Author: {
-    reviews(parent) {
-      return db.reviews.filter((r) => r.author_id === parent.id);
-    },
+    // Fetch reviews written by a specific author
+    reviews: async (parent) => await Review.findAll({ where: { author_id: parent.id } }),
   },
   Review: {
-    author(parent) {
-      return db.authors.find((a) => a.id === parent.author_id);
-    },
-    game(parent) {
-      return db.games.find((g) => g.id === parent.game_id);
-    },
+    // Fetch the author of a specific review
+    author: async (parent) => await Author.findByPk(parent.author_id),
+
+    // Fetch the game of a specific review
+    game: async (parent) => await Game.findByPk(parent.game_id),
   },
   Mutation: {
-    deleteGame(_, args) {
-      db.games = db.games.filter((g) => g.id !== args.id);
-      return db.games;
+    // Delete a game by ID and return the remaining games
+    deleteGame: async (_, { id }) => {
+      await Game.destroy({ where: { id } });
+      return await Game.findAll();
     },
-    addGame(_, args) {
-      let game = {
-        ...args.game,
-        id: Math.floor(Math.random() * 10000).toString(),
-      };
-      db.games.push(game);
-      return game;
+
+    // Add a new game and return the created game
+    addGame: async (_, { game }) => {
+      return await Game.create(game);
     },
-    updateGame(_, args){
-      db.games = db.games.map((g) => {
-        if (g.id === args.id){
-          return {...g, ...args.edits}
-        }
-        return g
-      })
-      return db.games.find((g) => g.id === args.id)
-    }
+
+    // Update a game by ID with new details and return the updated game
+    updateGame: async (_, { id, edits }) => {
+      await Game.update(edits, { where: { id } });
+      return await Game.findByPk(id);
+    },
   },
 };
 
-//server Setup
+// Server setup
 const server = new ApolloServer({
   typeDefs,
   resolvers,
 });
 
-const { url } = startStandaloneServer(server, {
+// Start the server
+const { url } = await startStandaloneServer(server, {
   listen: { port: 4000 },
 });
 
-console.log("server ready at port: ", 4000);
+console.log("Server ready at port:", 4000);
