@@ -1,4 +1,3 @@
-// index.js
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
 import { typeDefs } from "./schema.js";
@@ -11,8 +10,15 @@ import Review from "./models/Review.js";
 const resolvers = {
   Query: {
     // Fetch all games
-    games: async () => await Game.findAll(),
-
+    games: async () => {
+      const games = await Game.findAll();
+      console.log("Fetched games:", games);
+      return games.map((game) => {
+        const parsedGame = game.dataValues;
+        parsedGame.platform = JSON.parse(parsedGame.platform);
+        return parsedGame;
+      });
+    },
     // Fetch all reviews
     reviews: async () => await Review.findAll(),
 
@@ -30,11 +36,13 @@ const resolvers = {
   },
   Game: {
     // Fetch reviews related to a specific game
-    reviews: async (parent) => await Review.findAll({ where: { game_id: parent.id } }),
+    reviews: async (parent) =>
+      await Review.findAll({ where: { game_id: parent.id } }),
   },
   Author: {
     // Fetch reviews written by a specific author
-    reviews: async (parent) => await Review.findAll({ where: { author_id: parent.id } }),
+    reviews: async (parent) =>
+      await Review.findAll({ where: { author_id: parent.id } }),
   },
   Review: {
     // Fetch the author of a specific review
