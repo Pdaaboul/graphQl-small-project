@@ -21,13 +21,10 @@ const resolvers = {
     },
     // Fetch all reviews
     reviews: async () => await Review.findAll(),
-
     // Fetch all authors
     authors: async () => await Author.findAll(),
-
     // Fetch a specific review by ID
     review: async (_, { id }) => await Review.findByPk(id),
-
     // Fetch a specific game by ID
     game: async (_, { id }) => {
       const game = await Game.findByPk(id);
@@ -38,7 +35,6 @@ const resolvers = {
       }
       return null;
     },
-
     // Fetch a specific author by ID
     author: async (_, { id }) => await Author.findByPk(id),
   },
@@ -55,22 +51,27 @@ const resolvers = {
   Review: {
     // Fetch the author of a specific review
     author: async (parent) => await Author.findByPk(parent.author_id),
-
     // Fetch the game of a specific review
     game: async (parent) => await Game.findByPk(parent.game_id),
   },
   Mutation: {
     // Delete a game by ID and return the remaining games
     deleteGame: async (_, { id }) => {
+      // Delete associated reviews first
+      await Review.destroy({ where: { game_id: id } });
+      // Then delete the game
       await Game.destroy({ where: { id } });
-      return await Game.findAll();
+      const games = await Game.findAll();
+      return games.map((game) => {
+        const parsedGame = game.dataValues;
+        parsedGame.platform = JSON.parse(parsedGame.platform);
+        return parsedGame;
+      });
     },
-
     // Add a new game and return the created game
     addGame: async (_, { game }) => {
       return await Game.create(game);
     },
-
     // Update a game by ID with new details and return the updated game
     updateGame: async (_, { id, edits }) => {
       await Game.update(edits, { where: { id } });
